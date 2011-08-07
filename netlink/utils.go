@@ -46,7 +46,30 @@ func readAlignedFromSlice(r *bytes.Buffer, data interface{}, dataLen int) os.Err
 	}
 	// advance by the padding size
 	r.Next(netlinkPadding(dataLen))
-  return nil
+	return nil
+}
+
+func putAttribute(w *bytes.Buffer, attrtype uint16, data interface{}) os.Error {
+	var attr Attr
+	switch data := data.(type) {
+	case []byte:
+		attr = Attr{Len: uint16(len(data)), Type: attrtype}
+		binary.Write(w, systemEndianness, attr)
+		binary.Write(w, systemEndianness, data)
+	case string:
+		attr = Attr{Len: uint16(len(data) + 1), Type: attrtype}
+		binary.Write(w, systemEndianness, attr)
+		binary.Write(w, systemEndianness, []byte(data))
+		w.WriteByte(0)
+	default:
+		attr = Attr{Len: uint16(sizeof(data)), Type: attrtype}
+		binary.Write(w, systemEndianness, attr)
+		binary.Write(w, systemEndianness, data)
+	}
+	for i := 0; i < netlinkPadding(int(attr.Len)); i++ {
+		w.WriteByte(0)
+	}
+	return nil
 }
 
 func sizeof(data interface{}) int {
@@ -55,6 +78,8 @@ func sizeof(data interface{}) int {
 	case reflect.Ptr:
 		v = d.Elem()
 	case reflect.Slice:
+		v = d
+	default:
 		v = d
 	}
 	return binary.TotalSize(v)
