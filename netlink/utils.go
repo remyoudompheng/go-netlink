@@ -1,12 +1,12 @@
 package netlink
 
 import (
-  "os"
-  "net"
+	"os"
+	"net"
 	"encoding/binary"
 	"reflect"
 	"bytes"
-  "syscall"
+	"syscall"
 )
 
 func netlinkPadding(size int) int {
@@ -15,15 +15,15 @@ func netlinkPadding(size int) int {
 }
 
 func skipAlignedFromSlice(r *bytes.Buffer, dataLen int) os.Error {
-  r.Next(dataLen + netlinkPadding(dataLen))
-  return nil
+	r.Next(dataLen + netlinkPadding(dataLen))
+	return nil
 }
 
 func readAlignedFromSlice(r *bytes.Buffer, data interface{}, dataLen int) os.Error {
 	var er os.Error
 	switch dest := data.(type) {
-  case nil:
-    r.Next(dataLen)
+	case nil:
+		r.Next(dataLen)
 	case *[]byte:
 		*dest = make([]byte, dataLen)
 		_, er = r.Read((*dest)[:])
@@ -39,12 +39,12 @@ func readAlignedFromSlice(r *bytes.Buffer, data interface{}, dataLen int) os.Err
 		// Read a binary struct
 		er = binary.Read(r, systemEndianness, data)
 		realLen := sizeof(data)
-    r.Next(dataLen - realLen)
+		r.Next(dataLen - realLen)
 	}
 	if er != nil {
 		return er
 	}
-  // advance by the padding size
+	// advance by the padding size
 	r.Next(netlinkPadding(dataLen))
   return nil
 }

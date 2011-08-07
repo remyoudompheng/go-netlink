@@ -48,16 +48,16 @@ func DialNetlink(family string, mask uint32) (conn *NetlinkConn, er os.Error) {
 		er = os.NewSyscallError("socket", errno)
 		return nil, fmt.Errorf("Cannot create netlink socket: %s", er)
 	}
-  conn = new(NetlinkConn)
+	conn = new(NetlinkConn)
 	conn.fd = fd
 	conn.family = familyno
 	conn.addr.Family = syscall.AF_NETLINK
 	conn.addr.Pid = 0
 	conn.addr.Groups = mask
-  errno = syscall.Bind(fd, &conn.addr)
+	errno = syscall.Bind(fd, &conn.addr)
 	if errno != 0 {
 		er = os.NewSyscallError("bind", errno)
-    syscall.Close(fd)
+		syscall.Close(fd)
 		return nil, fmt.Errorf("Cannot bind netlink socket: %s", er)
 	}
 	return conn, nil

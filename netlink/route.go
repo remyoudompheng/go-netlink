@@ -11,17 +11,11 @@ import (
 
 
 func MakeRouteMessage(proto, family int) (msg RawNetlinkMessage) {
-	msg.Header.Len = syscall.NLMSG_HDRLEN + syscall.SizeofRtGenmsg
 	msg.Header.Type = uint16(proto)
 	msg.Header.Flags = syscall.NLM_F_DUMP | syscall.NLM_F_REQUEST
-	msg.Header.Seq = 17
 	msg.Data = make([]byte, syscall.SizeofRtGenmsg)
 	msg.Data[0] = uint8(family)
 	return msg
-}
-
-type RouteMessage interface {
-	isRouteMessage() bool
 }
 
 type IfMap struct {
@@ -57,17 +51,13 @@ type RouteLinkMessage struct {
 	Group     uint32
 }
 
-func (m RouteLinkMessage) isRouteMessage() bool {
-	return true
-}
-
 const (
 	IFLA_NUM_VF  = 0x15
 	IFLA_STATS64 = 0x17
 	IFLA_GROUP   = 0x1b
 )
 
-func ParseRouteLinkMessage(msg syscall.NetlinkMessage) (RouteMessage, os.Error) {
+func ParseRouteLinkMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
 	m := new(RouteLinkMessage)
 	m.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
@@ -143,11 +133,7 @@ type IfAddrCacheInfo struct {
 	TStamp    uint32
 }
 
-func (m RouteAddrMessage) isRouteMessage() bool {
-	return true
-}
-
-func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (RouteMessage, os.Error) {
+func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
 	m := new(RouteAddrMessage)
 	m.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
@@ -163,18 +149,18 @@ func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (RouteMessage, os.Error) 
 		}
 		switch attr.Type {
 		case syscall.IFA_ADDRESS:
-      readAlignedFromSlice(buf, &m.Address, dataLen)
+			readAlignedFromSlice(buf, &m.Address, dataLen)
 		case syscall.IFA_LOCAL:
-      readAlignedFromSlice(buf, &m.Local, dataLen)
+			readAlignedFromSlice(buf, &m.Local, dataLen)
 		case syscall.IFA_LABEL:
-      readAlignedFromSlice(buf, &m.Label, dataLen)
+			readAlignedFromSlice(buf, &m.Label, dataLen)
 		case syscall.IFA_BROADCAST:
-      readAlignedFromSlice(buf, &m.Broadcast, dataLen)
+			readAlignedFromSlice(buf, &m.Broadcast, dataLen)
 		case syscall.IFA_ANYCAST:
-      readAlignedFromSlice(buf, &m.Anycast, dataLen)
+			readAlignedFromSlice(buf, &m.Anycast, dataLen)
 		case syscall.IFA_CACHEINFO:
 			m.Cacheinfo = new(IfAddrCacheInfo)
-      readAlignedFromSlice(buf, m.Cacheinfo, dataLen)
+			readAlignedFromSlice(buf, m.Cacheinfo, dataLen)
 		default:
 			fmt.Println(attr)
 			skipAlignedFromSlice(buf, dataLen)
@@ -183,7 +169,7 @@ func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (RouteMessage, os.Error) 
 	return m, nil
 }
 
-func ParseRouteMessage(msg syscall.NetlinkMessage) (RouteMessage, os.Error) {
+func ParseRouteMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
 	switch msg.Header.Type {
 	case syscall.RTM_NEWADDR, syscall.RTM_GETADDR, syscall.RTM_DELADDR:
 		return ParseRouteAddrMessage(msg)
