@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"netlink"
 	"syscall"
+	"json"
 )
 
 func TestRouteLink(r *bufio.Reader, w *bufio.Writer) {
@@ -14,11 +15,12 @@ func TestRouteLink(r *bufio.Reader, w *bufio.Writer) {
 	netlink.WriteMessage(w, msg)
 	for {
 		resp, _ := netlink.ReadMessage(r)
-		parsedmsg, _ := netlink.ParseRouteMessage(resp)
+		parsedmsg, er := netlink.ParseRouteMessage(resp)
 		if parsedmsg == nil {
 			break
 		}
-		fmt.Printf("%#v\n", parsedmsg)
+		msg_s, _ := json.MarshalIndent(parsedmsg, "", "  ")
+		fmt.Printf("Errmsg: %#v\nLinkmsg = %s\n", er, msg_s)
 	}
 }
 
@@ -27,11 +29,15 @@ func TestRouteAddr(r *bufio.Reader, w *bufio.Writer) {
 	netlink.WriteMessage(w, msg)
 	for {
 		resp, _ := netlink.ReadMessage(r)
-		parsedmsg, _ := netlink.ParseRouteMessage(resp)
+		parsedmsg, er := netlink.ParseRouteMessage(resp)
 		if parsedmsg == nil {
 			break
 		}
-		fmt.Printf("%#v\n", parsedmsg)
+		if er != nil {
+			fmt.Println(resp)
+		}
+		msg_s, _ := json.MarshalIndent(parsedmsg, "", "  ")
+		fmt.Printf("Errmsg: %#v\nAddrMsg = %s\n", er, msg_s)
 	}
 }
 
@@ -49,10 +55,12 @@ func TestGenericFamily(r *bufio.Reader, w *bufio.Writer) {
 		parsedmsg, _ := netlink.ParseGenlFamilyMessage(resp)
 		switch m := parsedmsg.(type) {
 		case netlink.ErrorMessage:
-			fmt.Printf("%#v, %s\n", m, os.NewSyscallError("netlink", int(-m.Errno)))
+			msg_s, _ := json.MarshalIndent(m, "", "  ")
+			fmt.Printf("ErrorMsg = %s\n%s\n", msg_s, os.NewSyscallError("netlink", int(-m.Errno)))
 			break
 		default:
-			fmt.Printf("%#v\n", m)
+			msg_s, _ := json.MarshalIndent(m, "", "  ")
+			fmt.Printf("GenlFamily = %s\n", msg_s)
 		}
 	}
 }
