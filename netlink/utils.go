@@ -19,6 +19,128 @@ func skipAlignedFromSlice(r *bytes.Buffer, dataLen int) os.Error {
 	return nil
 }
 
+func strtoi(s string) int {
+	i := 0
+	for _, c := range s {
+		i *= 10
+		i += c - '0'
+	}
+	return i
+}
+
+// Returns pointer to a field, and type information corresponding to a given numerical ID.
+func getDestinationAndType(object interface{}, id uint16) (reflect.Value, string, os.Error) {
+	ptrType := reflect.TypeOf(object)
+	// check the object is a pointer
+	if ptrType.Kind() != reflect.Ptr {
+		er := fmt.Errorf("getDestinationAndType() received"+
+			" object of Kind %s, expected pointer!", ptrType.Kind())
+		return reflect.ValueOf(nil), "", er
+	}
+	// check the indirected object is a struct
+	objType := ptrType.Elem()
+	if objType.Kind() != reflect.Struct {
+		er := fmt.Errorf("getDestinationAndType() received"+
+			" a pointer to %s, expected pointer to struct!", objType.Kind())
+		return reflect.ValueOf(nil), "", er
+	}
+	// find appropriate field
+	for i := 0; i < objType.NumField(); i++ {
+		objField := objType.Field(i)
+		if strtoi(objField.Tag.Get("netlink")) == int(id) {
+			// found field
+			type_s := objField.Tag.Get("type")
+			// returns ValueOf((*object).field)
+			fieldValue := reflect.Indirect(reflect.ValueOf(object)).Field(i)
+			return fieldValue, type_s, nil
+		}
+	}
+	er := fmt.Errorf("could not find field ID %d in object of type %s",
+		id, objType)
+	return reflect.ValueOf(nil), "", er
+}
+
+// Reads one attribute into a structure.
+// dest must be a pointer to a struct.
+func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
+	var attr syscall.RtAttr
+	er = binary.Read(r, systemEndianness, &attr)
+	if er != nil {
+		return er
+	}
+	dataLen := int(attr.Len) - syscall.SizeofRtAttr
+	value, type_spec, er := getDestinationAndType(dest, attr.Type)
+	switch true {
+	case er != nil:
+		return er
+	case type_spec == "fixed":
+		if !value.CanAddr() {
+			return fmt.Errorf("trying to read fixed-width data in a non addressable field!")
+		}
+		er = binary.Read(r, systemEndianness, value.Addr().Interface())
+	case type_spec == "bytes":
+		buf := make([]byte, dataLen)
+		_, er = r.Read(buf[:])
+		value.Set(reflect.ValueOf(buf))
+	case type_spec == "string":
+		// Reads a NUL-terminated byte array
+		if value.Type().Kind() != reflect.String {
+			return fmt.Errorf("unable to fill field of type %s with string!", value.Type())
+		}
+		buf := make([]byte, dataLen)
+		_, er = r.Read(buf[:])
+		s := string(buf[:len(buf)-1])
+		value.Set(reflect.ValueOf(s))
+	case type_spec == "nested":
+		if !value.CanAddr() {
+			return fmt.Errorf("trying to read nested attributes to a non addressable field!")
+		}
+		buf := make([]byte, dataLen)
+		_, er = r.Read(buf[:])
+		er = readManyAttributes(bytes.NewBuffer(buf), value.Addr().Interface())
+	default:
+		return fmt.Errorf("Invalid format tag %s: expecting 'fixed', 'bytes', 'string', or 'nested'", type_spec)
+	}
+	r.Next(netlinkPadding(dataLen))
+	return er
+}
+
+func readManyAttributes(r *bytes.Buffer, dest interface{}) (er os.Error) {
+	for {
+		er := readAttribute(r, dest)
+		switch er {
+		case nil:
+			break
+		case os.EOF:
+			return nil
+		default:
+			return er
+		}
+	}
+	return nil
+}
+
+func readNestedFromSlice(attr []byte, data *[][]byte) os.Error {
+	buf := bytes.NewBuffer(attr)
+	for {
+		var attr syscall.RtAttr
+		var subattr []byte
+		er := binary.Read(buf, systemEndianness, &attr)
+		dataLen := int(attr.Len) - syscall.SizeofRtAttr
+		switch true {
+		case er == os.EOF:
+			return nil
+		case dataLen > buf.Len():
+			return fmt.Errorf("invalid attribute length: %d > %d", dataLen, buf.Len())
+		case er != nil:
+			return er
+		}
+		readAlignedFromSlice(buf, &subattr, dataLen)
+		*data = append(*data, subattr)
+	}
+	return nil
+}
+
 func readAlignedFromSlice(r *bytes.Buffer, data interface{}, dataLen int) os.Error {
 	var er os.Error
 	switch dest := data.(type) {
