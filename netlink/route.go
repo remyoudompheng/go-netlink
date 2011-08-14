@@ -97,8 +97,8 @@ func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os
 
 	binary.Read(buf, systemEndianness, &m.IfAddr)
 	// read Address attributes
-  er := readManyAttributes(buf, m)
-  return m, er
+	er := readManyAttributes(buf, m)
+	return m, er
 }
 
 func ParseRouteMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {

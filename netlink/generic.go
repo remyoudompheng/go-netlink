@@ -2,7 +2,6 @@ package netlink
 
 import (
 	"os"
-	"fmt"
 	"bytes"
 	"encoding/binary"
 	"syscall"
@@ -40,16 +39,26 @@ func ParseGenlMessage(msg syscall.NetlinkMessage) (genmsg GenericNetlinkMessage,
 
 // Control messages for Generic Netlink interface
 
+type CtrlOp struct {
+	ID    uint32 `netlink:"1" type:"fixed"` // CTRL_ATTR_OP_ID
+	Flags uint32 `netlink:"2" type:"fixed"` // CTRL_ATTR_OP_FLAGS
+}
+
+type CtrlMcastGroup struct {
+	Name string `netlink:"1" type:"string"` // CTRL_ATTR_MCAST_GRP_NAME
+	ID   uint32 `netlink:"2" type:"fixed"`  // CTRL_ATTR_MCAST_GRP_ID
+}
+
 type GenlCtrlMessage struct {
 	Header      syscall.NlMsghdr // 16 bytes
 	GenHeader   GenlMsghdr       // 4 bytes
-	FamilyID    uint16
-	FamilyName  string
-	Version     uint32
-	HdrSize     uint32
-	MaxAttr     uint32
-	Ops         []byte
-	McastGroups []byte
+	FamilyID    uint16           `netlink:"1" type:"fixed"`      // CTRL_ATTR_FAMILY_ID
+	FamilyName  string           `netlink:"2" type:"string"`     // CTRL_ATTR_FAMILY_NAME
+	Version     uint32           `netlink:"3" type:"fixed"`      // CTRL_ATTR_VERSION
+	HdrSize     uint32           `netlink:"4" type:"fixed"`      // CTRL_ATTR_HDR_SIZE
+	MaxAttr     uint32           `netlink:"5" type:"fixed"`      // CTRL_ATTR_MAXATTR
+	Ops         []CtrlOp         `netlink:"6" type:"nestedlist"` // CTRL_ATTR_OPS
+	McastGroups []CtrlMcastGroup `netlink:"7" type:"nestedlist"` // CTRL_ATTR_MCAST_GROUPS
 }
 
 const (
@@ -102,30 +111,6 @@ func ParseGenlFamilyMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, o
 	binary.Read(buf, systemEndianness, &m.GenHeader)
 
 	// read Family attributes
-	for {
-		var attr syscall.RtAttr
-		er := binary.Read(buf, systemEndianness, &attr)
-		dataLen := int(attr.Len) - syscall.SizeofRtAttr
-		if er != nil || dataLen > buf.Len() {
-			break
-		}
-		switch attr.Type {
-		case CTRL_ATTR_FAMILY_ID:
-			readAlignedFromSlice(buf, &m.FamilyID, dataLen)
-		case CTRL_ATTR_FAMILY_NAME:
-			readAlignedFromSlice(buf, &m.FamilyName, dataLen)
-		case CTRL_ATTR_VERSION:
-			readAlignedFromSlice(buf, &m.Version, dataLen)
-		case CTRL_ATTR_HDRSIZE:
-			readAlignedFromSlice(buf, &m.HdrSize, dataLen)
-		case CTRL_ATTR_MAXATTR:
-			readAlignedFromSlice(buf, &m.MaxAttr, dataLen)
-		case CTRL_ATTR_OPS:
-			readAlignedFromSlice(buf, &m.Ops, dataLen)
-		default:
-			fmt.Println(attr)
-			skipAlignedFromSlice(buf, dataLen)
-		}
-	}
-	return m, nil
+	er := readManyAttributes(buf, m)
+	return m, er
 }

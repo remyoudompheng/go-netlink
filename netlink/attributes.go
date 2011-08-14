@@ -3,7 +3,6 @@ package netlink
 import (
 	"os"
 	"fmt"
-	"net"
 	"encoding/binary"
 	"reflect"
 	"bytes"
@@ -75,16 +74,18 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 	case er != nil:
 		return er
 	case type_spec == "fixed":
+		// The payload is a binary struct
 		if !value.CanAddr() {
 			return fmt.Errorf("trying to read fixed-width data in a non addressable field!")
 		}
 		er = binary.Read(r, systemEndianness, value.Addr().Interface())
 	case type_spec == "bytes":
+		// The payload is a raw sequence of bytes
 		buf := make([]byte, dataLen)
 		_, er = r.Read(buf[:])
 		value.Set(reflect.ValueOf(buf))
 	case type_spec == "string":
-		// Reads a NUL-terminated byte array
+		// The payload is a NUL-terminated byte array
 		if value.Type().Kind() != reflect.String {
 			return fmt.Errorf("unable to fill field of type %s with string!", value.Type())
 		}
@@ -93,6 +94,8 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 		s := string(buf[:len(buf)-1])
 		value.Set(reflect.ValueOf(s))
 	case type_spec == "nested":
+		// The payload is a seralized sequence of attributes
+		// <header> (<header1> <attribute1> ... <header n> <attribute n>)
 		if !value.CanAddr() {
 			return fmt.Errorf("trying to read nested attributes to a non addressable field!")
 		}
@@ -100,6 +103,11 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 		_, er = r.Read(buf[:])
 		er = readManyAttributes(bytes.NewBuffer(buf), value.Addr().Interface())
 	case type_spec == "nestedlist":
+		// The payload is a sequence of nested attributes, each of them carrying
+		// a payload describing a struct with attributes
+		// <header (4 bytes)> <payload>
+		// where payload is
+		// <header1> <nested attributes 1> ... <headern> <nested attributes n>
 		buf := make([]byte, dataLen)
 		_, er = r.Read(buf[:])
 		er = readNestedAttributeList(bytes.NewBuffer(buf), value)
@@ -154,57 +162,6 @@ func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) 
 		// Append the value
 		dest.Set(reflect.Append(dest, reflect.Indirect(item)))
 	}
-	return nil
-}
-
-func readNestedFromSlice(attr []byte, data *[][]byte) os.Error {
-	buf := bytes.NewBuffer(attr)
-	for {
-		var attr syscall.RtAttr
-		var subattr []byte
-		er := binary.Read(buf, systemEndianness, &attr)
-		dataLen := int(attr.Len) - syscall.SizeofRtAttr
-		switch true {
-		case er == os.EOF:
-			return nil
-		case dataLen > buf.Len():
-			return fmt.Errorf("invalid attribute length: %d > %d", dataLen, buf.Len())
-		case er != nil:
-			return er
-		}
-		readAlignedFromSlice(buf, &subattr, dataLen)
-		*data = append(*data, subattr)
-	}
-	return nil
-}
-
-func readAlignedFromSlice(r *bytes.Buffer, data interface{}, dataLen int) os.Error {
-	var er os.Error
-	switch dest := data.(type) {
-	case nil:
-		r.Next(dataLen)
-	case *[]byte:
-		*dest = make([]byte, dataLen)
-		_, er = r.Read((*dest)[:])
-	case *net.IP:
-		*dest = make([]byte, dataLen)
-		_, er = r.Read((*dest)[:])
-	case *string:
-		// Read a NULL-terminated string 
-		buffer := make([]byte, dataLen)
-		_, er = r.Read(buffer[:])
-		*dest = string(buffer[:len(buffer)-1])
-	default:
-		// Read a binary struct
-		er = binary.Read(r, systemEndianness, data)
-		realLen := sizeof(data)
-		r.Next(dataLen - realLen)
-	}
-	if er != nil {
-		return er
-	}
-	// advance by the padding size
-	r.Next(netlinkPadding(dataLen))
 	return nil
 }
 
