@@ -63,6 +63,7 @@ type AFSpec struct {
 	Inet6 Inet6ProtInfo `netlink:"10" type:"nested"` // AF_INET6
 }
 
+// Link messages for family NETLINK_ROUTE
 type RouteLinkMessage struct {
 	Header syscall.NlMsghdr
 	IfInfo syscall.IfInfomsg
@@ -126,6 +127,7 @@ type IfAddrCacheInfo struct {
 	TStamp    uint32
 }
 
+// Parse address messages for family NETLINK_ROUTE
 func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
 	m := new(RouteAddrMessage)
 	m.Header = msg.Header

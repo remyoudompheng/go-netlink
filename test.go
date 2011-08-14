@@ -54,6 +54,8 @@ func TestGenericFamily(r *bufio.Reader, w *bufio.Writer) {
 		resp, _ := netlink.ReadMessage(r)
 		parsedmsg, _ := netlink.ParseGenlFamilyMessage(resp)
 		switch m := parsedmsg.(type) {
+		case nil:
+			return
 		case netlink.ErrorMessage:
 			msg_s, _ := json.MarshalIndent(m, "", "  ")
 			fmt.Printf("ErrorMsg = %s\n%s\n", msg_s, os.NewSyscallError("netlink", int(-m.Errno)))

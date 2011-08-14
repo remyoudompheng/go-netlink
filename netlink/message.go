@@ -17,6 +17,7 @@ type NetlinkMsg interface {
 	toRawMsg() syscall.NetlinkMessage
 }
 
+// A netlink message with unparsed data
 type RawNetlinkMessage syscall.NetlinkMessage
 
 func (m RawNetlinkMessage) toRawMsg() syscall.NetlinkMessage {
@@ -25,6 +26,7 @@ func (m RawNetlinkMessage) toRawMsg() syscall.NetlinkMessage {
 
 // Higher level implementation: let's suppose we're on a little-endian platform
 
+// Write a netlink message to a socket
 func WriteMessage(s *bufio.Writer, m NetlinkMsg) os.Error {
 	msg := m.toRawMsg()
 	msg.Header.Len = uint32(syscall.NLMSG_HDRLEN + len(msg.Data))
@@ -40,6 +42,7 @@ func WriteMessage(s *bufio.Writer, m NetlinkMsg) os.Error {
 	return er
 }
 
+// Reads a netlink message from a socket
 func ReadMessage(s *bufio.Reader) (msg syscall.NetlinkMessage, er os.Error) {
 	binary.Read(s, systemEndianness, &msg.Header)
 	msg.Data = make([]byte, msg.Header.Len-syscall.NLMSG_HDRLEN)
@@ -54,13 +57,15 @@ type Attr struct {
 
 type ParsedNetlinkMessage interface{}
 
+// The structure of netlink error messages
 type ErrorMessage struct {
 	Header      syscall.NlMsghdr
 	Errno       int32
 	WrongHeader syscall.NlMsghdr
 }
 
-func ParseErrorMessage(msg syscall.NetlinkMessage) ParsedNetlinkMessage {
+// Parses a netlink error message
+func ParseErrorMessage(msg syscall.NetlinkMessage) ErrorMessage {
 	var parsed ErrorMessage
 	parsed.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
