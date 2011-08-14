@@ -2,6 +2,7 @@ package netlink
 
 import (
 	"os"
+	"fmt"
 	"net"
 	"encoding/binary"
 	"reflect"

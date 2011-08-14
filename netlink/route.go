@@ -31,29 +31,31 @@ type RouteLinkMessage struct {
 	Header syscall.NlMsghdr
 	IfInfo syscall.IfInfomsg
 	// attributes
-	Address   net.HardwareAddr
-	BcastAddr net.HardwareAddr
-	Ifname    string
-	MTU       uint32
-	LinkType  int32
-	QDisc     []byte
-	Stats     [23]uint32
-	Stats64   [23]uint64
-	Map       *IfMap
-	ProtInfo  []byte
-	Weight    uint32
-	Master    uint32
-	TxQLen    uint32
-	OperState uint8
-	LinkMode  uint8
-	Ifalias   string
-	NumVF     uint32
-	Group     uint32
+	Address   net.HardwareAddr `netlink:"1" type:"bytes"`   // IFLA_ADDRESS
+	BcastAddr net.HardwareAddr `netlink:"2" type:"bytes"`   // IFLA_BROADCAST
+	Ifname    string           `netlink:"3" type:"string"`  // IFLA_IFNAME
+	MTU       uint32           `netlink:"4" type:"fixed"`   // IFLA_MTU
+	LinkType  int32            `netlink:"5" type:"fixed"`   // IFLA_LINK
+	QDisc     []byte           `netlink:"6" type:"bytes"`   // IFLA_QDISC
+	Stats     [23]uint32       `netlink:"7" type:"fixed"`   // IFLA_STATS
+	Master    uint32           `netlink:"10" type:"fixed"`  // IFLA_MASTER
+	ProtInfo  []byte           `netlink:"12" type:"bytes"`  // IFLA_PROTINFO
+	TxQLen    uint32           `netlink:"13" type:"fixed"`  // IFLA_TXQLEN
+	Map       IfMap            `netlink:"14" type:"fixed"`  // IFLA_MAP
+	Weight    uint32           `netlink:"15" type:"fixed"`  // IFLA_WEIGHT
+	OperState uint8            `netlink:"16" type:"fixed"`  // IFLA_OPERSTATE
+	LinkMode  uint8            `netlink:"17" type:"fixed"`  // IFLA_LINKMODE
+	Ifalias   string           `netlink:"20" type:"string"` // IFLA_IFALIAS
+	NumVF     uint32           `netlink:"21" type:"fixed"`  // IFLA_NUM_VF
+	Stats64   [23]uint64       `netlink:"23" type:"fixed"`  // IFLA_STATS64
+	AFSpec    []byte           `netlink:"26" type:"bytes"`  //  IFLA_AF_SPEC
+	Group     uint32           `netlink:"27" type:"fixed"`  // IFLA_GROUP
 }
 
 const (
 	IFLA_NUM_VF  = 0x15
 	IFLA_STATS64 = 0x17
+	IFLA_AF_SPEC = 0x1a
 	IFLA_GROUP   = 0x1b
 )
 
@@ -63,54 +65,8 @@ func ParseRouteLinkMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os
 	buf := bytes.NewBuffer(msg.Data)
 	binary.Read(buf, systemEndianness, &m.IfInfo)
 	// read link attributes
-	for {
-		var attr syscall.RtAttr
-		er := binary.Read(buf, systemEndianness, &attr)
-		dataLen := int(attr.Len) - syscall.SizeofRtAttr
-		if er != nil || dataLen > buf.Len() {
-			fmt.Println(attr)
-			break
-		}
-		switch attr.Type {
-		case syscall.IFLA_ADDRESS: // 1
-			readAlignedFromSlice(buf, &m.Address, dataLen)
-		case syscall.IFLA_BROADCAST: // 2
-			readAlignedFromSlice(buf, &m.BcastAddr, dataLen)
-		case syscall.IFLA_IFNAME: // 3
-			readAlignedFromSlice(buf, &m.Ifname, dataLen)
-		case syscall.IFLA_MTU: // 4
-			readAlignedFromSlice(buf, &m.MTU, dataLen)
-		case syscall.IFLA_LINK: // 5
-			readAlignedFromSlice(buf, &m.LinkType, dataLen)
-		case syscall.IFLA_QDISC: // 6
-			readAlignedFromSlice(buf, &m.QDisc, dataLen)
-		case syscall.IFLA_STATS: // 7
-			readAlignedFromSlice(buf, &m.Stats, dataLen)
-		case syscall.IFLA_PROTINFO: // 12
-			readAlignedFromSlice(buf, &m.ProtInfo, dataLen)
-		case syscall.IFLA_TXQLEN: // 13
-			readAlignedFromSlice(buf, &m.TxQLen, dataLen)
-		case syscall.IFLA_MAP: // 14
-			m.Map = new(IfMap)
-			readAlignedFromSlice(buf, m.Map, dataLen)
-		case syscall.IFLA_LINKMODE: // 17
-			readAlignedFromSlice(buf, &m.LinkMode, dataLen)
-		case syscall.IFLA_OPERSTATE: // 18
-			readAlignedFromSlice(buf, &m.OperState, dataLen)
-		case syscall.IFLA_IFALIAS: // 20
-			readAlignedFromSlice(buf, &m.Ifalias, dataLen)
-		case IFLA_NUM_VF: // 21
-			readAlignedFromSlice(buf, &m.NumVF, dataLen)
-		case IFLA_STATS64: // 23
-			readAlignedFromSlice(buf, &m.Stats64, dataLen)
-		case IFLA_GROUP: // 27
-			readAlignedFromSlice(buf, &m.Group, dataLen)
-		default:
-			fmt.Println(attr)
-			skipAlignedFromSlice(buf, dataLen)
-		}
-	}
-	return m, nil
+	er := readManyAttributes(buf, m)
+	return m, er
 }
 
 // address messages
@@ -118,12 +74,13 @@ type RouteAddrMessage struct {
 	Header syscall.NlMsghdr
 	IfAddr syscall.IfAddrmsg
 	// attributes
-	Address   net.IP
-	Local     net.IP
-	Label     string
-	Broadcast net.IP
-	Anycast   net.IP
-	Cacheinfo *IfAddrCacheInfo
+	Address   net.IP          `netlink:"1" type:"bytes"`  // IFA_ADDRESS
+	Local     net.IP          `netlink:"2" type:"bytes"`  // IFA_LOCAL
+	Label     string          `netlink:"3" type:"string"` // IFA_LABEL
+	Broadcast net.IP          `netlink:"4" type:"bytes"`  // IFA_BROADCAST
+	Anycast   net.IP          `netlink:"5" type:"bytes"`  // IFA_ANYCAST
+	Cacheinfo IfAddrCacheInfo `netlink:"6" type:"fixed"`  // IFA_CACHEINFO
+	Multicast net.IP          `netlink:"7" type:"bytes"`  // IFA_MULTICAST
 }
 
 type IfAddrCacheInfo struct {
@@ -140,33 +97,8 @@ func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os
 
 	binary.Read(buf, systemEndianness, &m.IfAddr)
 	// read Address attributes
-	for {
-		var attr syscall.RtAttr
-		er := binary.Read(buf, systemEndianness, &attr)
-		dataLen := int(attr.Len) - syscall.SizeofRtAttr
-		if er != nil || dataLen > buf.Len() {
-			break
-		}
-		switch attr.Type {
-		case syscall.IFA_ADDRESS:
-			readAlignedFromSlice(buf, &m.Address, dataLen)
-		case syscall.IFA_LOCAL:
-			readAlignedFromSlice(buf, &m.Local, dataLen)
-		case syscall.IFA_LABEL:
-			readAlignedFromSlice(buf, &m.Label, dataLen)
-		case syscall.IFA_BROADCAST:
-			readAlignedFromSlice(buf, &m.Broadcast, dataLen)
-		case syscall.IFA_ANYCAST:
-			readAlignedFromSlice(buf, &m.Anycast, dataLen)
-		case syscall.IFA_CACHEINFO:
-			m.Cacheinfo = new(IfAddrCacheInfo)
-			readAlignedFromSlice(buf, m.Cacheinfo, dataLen)
-		default:
-			fmt.Println(attr)
-			skipAlignedFromSlice(buf, dataLen)
-		}
-	}
-	return m, nil
+  er := readManyAttributes(buf, m)
+  return m, er
 }
 
 func ParseRouteMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
