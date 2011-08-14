@@ -27,6 +27,42 @@ type IfMap struct {
 	Port     uint8
 }
 
+type LinkCacheInfo struct {
+	MaxReasmLen uint32
+	TimeStamp   uint32
+	ReachTime   uint32
+	RetransTime uint32
+}
+
+const (
+	DEVCONF_MAX     = 29
+	IPSTATS_MIB_MAX = 31
+	ICMP6_MIB_MAX   = 5
+)
+
+type Inet6ProtInfo struct {
+	Flags      uint32        `netlink:"1" type:"fixed"` // IFLA_INET6_FLAGS
+	Conf       [29]uint32    `netlink:"2" type:"fixed"` // IFLA_INET6_CONF (DEVCONF_MAX=29)
+	Stats      [31]uint64    `netlink:"3" type:"fixed"` // IFLA_INET6_STATS
+	Mcast      []byte        `netlink:"4" type:"bytes"` // IFLA_INET6_MCAST
+	CacheInfo  LinkCacheInfo `netlink:"5" type:"fixed"` // IFLA_INET6_CACHEINFO
+	Icmp6Stats [5]uint64     `netlink:"6" type:"fixed"` // IFLA_INET6_ICMP6STATS
+}
+
+type ProtInfo struct {
+	Inet6Info Inet6ProtInfo `netlink:"28" type:"nested"` // AF_INET6
+}
+
+type InetData struct {
+	Conf [25]uint32 `netlink:"1" type:"fixed"` // IFLA_INET_CONF
+}
+
+type AFSpec struct {
+	Local []byte        `netlink:"1" type:"bytes"`   // AF_LOCAL
+	Inet  InetData      `netlink:"2" type:"nested"`  // AF_INET
+	Inet6 Inet6ProtInfo `netlink:"10" type:"nested"` // AF_INET6
+}
+
 type RouteLinkMessage struct {
 	Header syscall.NlMsghdr
 	IfInfo syscall.IfInfomsg
@@ -36,7 +72,7 @@ type RouteLinkMessage struct {
 	Ifname    string           `netlink:"3" type:"string"`  // IFLA_IFNAME
 	MTU       uint32           `netlink:"4" type:"fixed"`   // IFLA_MTU
 	LinkType  int32            `netlink:"5" type:"fixed"`   // IFLA_LINK
-	QDisc     []byte           `netlink:"6" type:"bytes"`   // IFLA_QDISC
+	QDisc     string           `netlink:"6" type:"string"`  // IFLA_QDISC
 	Stats     [23]uint32       `netlink:"7" type:"fixed"`   // IFLA_STATS
 	Master    uint32           `netlink:"10" type:"fixed"`  // IFLA_MASTER
 	ProtInfo  []byte           `netlink:"12" type:"bytes"`  // IFLA_PROTINFO
@@ -48,7 +84,7 @@ type RouteLinkMessage struct {
 	Ifalias   string           `netlink:"20" type:"string"` // IFLA_IFALIAS
 	NumVF     uint32           `netlink:"21" type:"fixed"`  // IFLA_NUM_VF
 	Stats64   [23]uint64       `netlink:"23" type:"fixed"`  // IFLA_STATS64
-	AFSpec    []byte           `netlink:"26" type:"bytes"`  //  IFLA_AF_SPEC
+	AFSpec    AFSpec           `netlink:"26" type:"nested"` // IFLA_AF_SPEC
 	Group     uint32           `netlink:"27" type:"fixed"`  // IFLA_GROUP
 }
 
