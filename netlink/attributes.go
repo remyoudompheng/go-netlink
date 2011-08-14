@@ -154,10 +154,16 @@ func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) 
 		// Create buffer for nested attribute
 		buf := make([]byte, dataLen)
 		_, er = r.Read(buf[:])
+		if er != nil {
+			return er
+		}
 
 		// Read the value
 		item := reflect.New(dest.Type().Elem())
 		er = readManyAttributes(bytes.NewBuffer(buf), item.Interface())
+		if er != nil {
+			return er
+		}
 
 		// Append the value
 		dest.Set(reflect.Append(dest, reflect.Indirect(item)))
