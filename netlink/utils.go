@@ -99,6 +99,10 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 		buf := make([]byte, dataLen)
 		_, er = r.Read(buf[:])
 		er = readManyAttributes(bytes.NewBuffer(buf), value.Addr().Interface())
+	case type_spec == "nestedlist":
+		buf := make([]byte, dataLen)
+		_, er = r.Read(buf[:])
+		er = readNestedAttributeList(bytes.NewBuffer(buf), value)
 	default:
 		return fmt.Errorf("Invalid format tag %s: expecting 'fixed', 'bytes', 'string', or 'nested'", type_spec)
 	}
@@ -117,6 +121,38 @@ func readManyAttributes(r *bytes.Buffer, dest interface{}) (er os.Error) {
 		default:
 			return er
 		}
+	}
+	return nil
+}
+
+// Reads n nested attributes into the elements of an array
+func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) {
+	if dest.Type().Kind() != reflect.Slice {
+		return fmt.Errorf("unable to fill field of type %s with list of nested attrs!", dest.Type())
+	}
+	for {
+		var attr syscall.RtAttr
+		er = binary.Read(r, systemEndianness, &attr)
+		switch er {
+		case nil:
+			break
+		case os.EOF:
+			return nil
+		default:
+			return er
+		}
+		dataLen := int(attr.Len) - syscall.SizeofRtAttr
+
+		// Create buffer for nested attribute
+		buf := make([]byte, dataLen)
+		_, er = r.Read(buf[:])
+
+		// Read the value
+		item := reflect.New(dest.Type().Elem())
+		er = readManyAttributes(bytes.NewBuffer(buf), item.Interface())
+
+		// Append the value
+		dest.Set(reflect.Append(dest, reflect.Indirect(item)))
 	}
 	return nil
 }
