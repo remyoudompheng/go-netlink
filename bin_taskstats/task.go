@@ -12,14 +12,14 @@ import (
 )
 
 func MakeCmdMessage() (msg netlink.GenericNetlinkMessage) {
-  msg.Header.Type = 23
-  msg.Header.Flags = syscall.NLM_F_REQUEST | syscall.NLM_F_DUMP
-  msg.GenHeader.Command = genl.TASKSTATS_CMD_GET
-  msg.GenHeader.Version = genl.TASKSTATS_GENL_VERSION
-  buf := bytes.NewWriter([]byte{})
-  binary.Write(buf, binary.LittleEndian, uint32(os.Getpid()))
-  msg.Data = buf.Bytes
-  return msg
+	msg.Header.Type = 23
+	msg.Header.Flags = syscall.NLM_F_REQUEST
+	msg.GenHeader.Command = genl.TASKSTATS_CMD_GET
+	msg.GenHeader.Version = genl.TASKSTATS_GENL_VERSION
+	buf := bytes.NewBuffer([]byte{})
+	netlink.PutAttribute(buf, genl.TASKSTATS_CMD_ATTR_TGID, uint32(1282))
+	msg.Data = buf.Bytes()
+	return msg
 }
 
 func TestTaskStats(r *bufio.Reader, w *bufio.Writer) {
