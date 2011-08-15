@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	systemEndianness = binary.LittleEndian
+	SystemEndianness = binary.LittleEndian
 	globalSeq        = uint32(0)
 )
 
@@ -32,11 +32,7 @@ func WriteMessage(s *bufio.Writer, m NetlinkMsg) os.Error {
 	msg.Header.Len = uint32(syscall.NLMSG_HDRLEN + len(msg.Data))
 	msg.Header.Seq = globalSeq
 	globalSeq++
-	binary.Write(s, systemEndianness, msg.Header.Len)   // 4 bytes
-	binary.Write(s, systemEndianness, msg.Header.Type)  // 2 bytes
-	binary.Write(s, systemEndianness, msg.Header.Flags) // 2 bytes
-	binary.Write(s, systemEndianness, msg.Header.Seq)   // 4 bytes
-	binary.Write(s, systemEndianness, msg.Header.Pid)   // 4 bytes
+	binary.Write(s, SystemEndianness, msg.Header)   // 16 bytes
 	_, er := s.Write(msg.Data)
 	s.Flush()
 	return er
@@ -44,7 +40,7 @@ func WriteMessage(s *bufio.Writer, m NetlinkMsg) os.Error {
 
 // Reads a netlink message from a socket
 func ReadMessage(s *bufio.Reader) (msg syscall.NetlinkMessage, er os.Error) {
-	binary.Read(s, systemEndianness, &msg.Header)
+	binary.Read(s, SystemEndianness, &msg.Header)
 	msg.Data = make([]byte, msg.Header.Len-syscall.NLMSG_HDRLEN)
 	_, er = s.Read(msg.Data)
 	return msg, er
@@ -69,7 +65,7 @@ func ParseErrorMessage(msg syscall.NetlinkMessage) ErrorMessage {
 	var parsed ErrorMessage
 	parsed.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
-	binary.Read(buf, systemEndianness, &parsed.Errno)
-	binary.Read(buf, systemEndianness, &parsed.WrongHeader)
+	binary.Read(buf, SystemEndianness, &parsed.Errno)
+	binary.Read(buf, SystemEndianness, &parsed.WrongHeader)
 	return parsed
 }

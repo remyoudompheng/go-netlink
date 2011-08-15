@@ -64,7 +64,7 @@ func getDestinationAndType(object interface{}, id uint16) (reflect.Value, string
 // dest must be a pointer to a struct.
 func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 	var attr syscall.RtAttr
-	er = binary.Read(r, systemEndianness, &attr)
+	er = binary.Read(r, SystemEndianness, &attr)
 	if er != nil {
 		return er
 	}
@@ -78,7 +78,7 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 		if !value.CanAddr() {
 			return fmt.Errorf("trying to read fixed-width data in a non addressable field!")
 		}
-		er = binary.Read(r, systemEndianness, value.Addr().Interface())
+		er = binary.Read(r, SystemEndianness, value.Addr().Interface())
 	case type_spec == "bytes":
 		// The payload is a raw sequence of bytes
 		buf := make([]byte, dataLen)
@@ -101,7 +101,7 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 		}
 		buf := make([]byte, dataLen)
 		_, er = r.Read(buf[:])
-		er = readManyAttributes(bytes.NewBuffer(buf), value.Addr().Interface())
+		er = ReadManyAttributes(bytes.NewBuffer(buf), value.Addr().Interface())
 	case type_spec == "nestedlist":
 		// The payload is a sequence of nested attributes, each of them carrying
 		// a payload describing a struct with attributes
@@ -118,7 +118,7 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 	return er
 }
 
-func readManyAttributes(r *bytes.Buffer, dest interface{}) (er os.Error) {
+func ReadManyAttributes(r *bytes.Buffer, dest interface{}) (er os.Error) {
 	for {
 		er := readAttribute(r, dest)
 		switch er {
@@ -140,7 +140,7 @@ func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) 
 	}
 	for {
 		var attr syscall.RtAttr
-		er = binary.Read(r, systemEndianness, &attr)
+		er = binary.Read(r, SystemEndianness, &attr)
 		switch er {
 		case nil:
 			break
@@ -160,7 +160,7 @@ func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) 
 
 		// Read the value
 		item := reflect.New(dest.Type().Elem())
-		er = readManyAttributes(bytes.NewBuffer(buf), item.Interface())
+		er = ReadManyAttributes(bytes.NewBuffer(buf), item.Interface())
 		if er != nil {
 			return er
 		}
@@ -176,17 +176,17 @@ func putAttribute(w *bytes.Buffer, attrtype uint16, data interface{}) os.Error {
 	switch data := data.(type) {
 	case []byte:
 		attr = Attr{Len: uint16(len(data)), Type: attrtype}
-		binary.Write(w, systemEndianness, attr)
-		binary.Write(w, systemEndianness, data)
+		binary.Write(w, SystemEndianness, attr)
+		binary.Write(w, SystemEndianness, data)
 	case string:
 		attr = Attr{Len: uint16(len(data) + 1), Type: attrtype}
-		binary.Write(w, systemEndianness, attr)
-		binary.Write(w, systemEndianness, []byte(data))
+		binary.Write(w, SystemEndianness, attr)
+		binary.Write(w, SystemEndianness, []byte(data))
 		w.WriteByte(0)
 	default:
 		attr = Attr{Len: uint16(sizeof(data)), Type: attrtype}
-		binary.Write(w, systemEndianness, attr)
-		binary.Write(w, systemEndianness, data)
+		binary.Write(w, SystemEndianness, attr)
+		binary.Write(w, SystemEndianness, data)
 	}
 	for i := 0; i < netlinkPadding(int(attr.Len)); i++ {
 		w.WriteByte(0)

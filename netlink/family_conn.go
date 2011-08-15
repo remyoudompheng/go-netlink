@@ -33,27 +33,40 @@ type ConnMsgid struct {
 	Val uint32
 }
 
+type ConnMsghdr struct {
+	Id  ConnMsgid
+	Seq uint32
+	Ack uint32
+	Len uint32
+}
+
 type ConnMessage struct {
-	Header syscall.NlMsghdr
-	Id     ConnMsgid
-	Seq    uint32
-	Ack    uint32
-	Len    uint32
-	Data   []byte
+	Header  syscall.NlMsghdr
+	ConnHdr ConnMsghdr
+	Data    []byte
 }
 
 func (msg *ConnMessage) toRawMsg() (rawmsg syscall.NetlinkMessage) {
 	rawmsg.Header = msg.Header
-	msg.Len = uint32(len(msg.Data))
+	msg.ConnHdr.Len = uint32(len(msg.Data))
 	w := bytes.NewBuffer([]byte{})
-	binary.Write(w, systemEndianness, msg.Header)
-	binary.Write(w, systemEndianness, msg.Id)
-	binary.Write(w, systemEndianness, msg.Seq)
-	binary.Write(w, systemEndianness, msg.Ack)
-	binary.Write(w, systemEndianness, msg.Len)
+	binary.Write(w, SystemEndianness, msg.ConnHdr)
 	w.Write(msg.Data)
 	rawmsg.Data = w.Bytes()
 	return rawmsg
+}
+
+func ParseConnMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
+	switch msg.Header.Type {
+	case syscall.NLMSG_ERROR:
+		return ParseErrorMessage(msg), nil
+	}
+	var cn_msg ConnMessage
+	cn_msg.Header = msg.Header
+	r := bytes.NewBuffer(msg.Data)
+	binary.Read(r, SystemEndianness, &cn_msg.ConnHdr)
+	cn_msg.Data = r.Bytes()[:cn_msg.ConnHdr.Len]
+	return cn_msg, nil
 }
 
 // Constants from <linux/cn_proc.h>
@@ -124,7 +137,7 @@ type ProcEventExit struct {
 func ParseProcEvent(data []byte) (interface{}, os.Error) {
 	var h ProcEventHdr
 	r := bytes.NewBuffer(data)
-	er := binary.Read(r, systemEndianness, &h)
+	er := binary.Read(r, SystemEndianness, &h)
 	// reset buffer
 	r = bytes.NewBuffer(data)
 	switch true {
@@ -132,27 +145,27 @@ func ParseProcEvent(data []byte) (interface{}, os.Error) {
 		return nil, er
 	case h.What == PROC_EVENT_NONE:
 		var ev ProcEventAck
-		er = binary.Read(r, systemEndianness, &ev)
+		er = binary.Read(r, SystemEndianness, &ev)
 		return ev, er
 	case h.What == PROC_EVENT_FORK:
 		var ev ProcEventFork
-		er = binary.Read(r, systemEndianness, &ev)
+		er = binary.Read(r, SystemEndianness, &ev)
 		return ev, er
 	case h.What == PROC_EVENT_EXEC:
 		var ev ProcEventExec
-		er = binary.Read(r, systemEndianness, &ev)
+		er = binary.Read(r, SystemEndianness, &ev)
 		return ev, er
 	case h.What == PROC_EVENT_UID || h.What == PROC_EVENT_GID:
 		var ev ProcEventId
-		er = binary.Read(r, systemEndianness, &ev)
+		er = binary.Read(r, SystemEndianness, &ev)
 		return ev, er
 	case h.What == PROC_EVENT_SID:
 		var ev ProcEventSid
-		er = binary.Read(r, systemEndianness, &ev)
+		er = binary.Read(r, SystemEndianness, &ev)
 		return ev, er
 	case h.What == PROC_EVENT_EXIT:
 		var ev ProcEventExit
-		er = binary.Read(r, systemEndianness, &ev)
+		er = binary.Read(r, SystemEndianness, &ev)
 		return ev, er
 	}
 	return nil, fmt.Errorf("invalid process event type: %x", h.What)

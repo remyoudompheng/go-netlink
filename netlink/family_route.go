@@ -100,9 +100,9 @@ func ParseRouteLinkMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os
 	m := new(RouteLinkMessage)
 	m.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
-	binary.Read(buf, systemEndianness, &m.IfInfo)
+	binary.Read(buf, SystemEndianness, &m.IfInfo)
 	// read link attributes
-	er := readManyAttributes(buf, m)
+	er := ReadManyAttributes(buf, m)
 	return m, er
 }
 
@@ -133,9 +133,9 @@ func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os
 	m.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
 
-	binary.Read(buf, systemEndianness, &m.IfAddr)
+	binary.Read(buf, SystemEndianness, &m.IfAddr)
 	// read Address attributes
-	er := readManyAttributes(buf, m)
+	er := ReadManyAttributes(buf, m)
 	return m, er
 }
 
