@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"netlink"
+	"netlink/genl"
 	"syscall"
 	"json"
 )
@@ -42,7 +43,7 @@ func TestRouteAddr(r *bufio.Reader, w *bufio.Writer) {
 }
 
 func TestGenericFamily(r *bufio.Reader, w *bufio.Writer) {
-	msg := netlink.MakeGenCtrlCmd(netlink.CTRL_CMD_GETFAMILY)
+	msg := genl.MakeGenCtrlCmd(genl.CTRL_CMD_GETFAMILY)
 	netlink.WriteMessage(w, &msg)
 	b := bytes.NewBuffer([]byte{})
 	buf := bufio.NewWriter(b)
@@ -52,7 +53,7 @@ func TestGenericFamily(r *bufio.Reader, w *bufio.Writer) {
 
 	for {
 		resp, _ := netlink.ReadMessage(r)
-		parsedmsg, _ := netlink.ParseGenlFamilyMessage(resp)
+		parsedmsg, _ := genl.ParseGenlFamilyMessage(resp)
 		switch m := parsedmsg.(type) {
 		case nil:
 			return

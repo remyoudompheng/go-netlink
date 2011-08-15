@@ -32,7 +32,7 @@ func WriteMessage(s *bufio.Writer, m NetlinkMsg) os.Error {
 	msg.Header.Len = uint32(syscall.NLMSG_HDRLEN + len(msg.Data))
 	msg.Header.Seq = globalSeq
 	globalSeq++
-	binary.Write(s, SystemEndianness, msg.Header)   // 16 bytes
+	binary.Write(s, SystemEndianness, msg.Header) // 16 bytes
 	_, er := s.Write(msg.Data)
 	s.Flush()
 	return er

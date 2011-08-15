@@ -100,8 +100,8 @@ type ProcEventAck struct {
 
 type ProcEventFork struct {
 	Header     ProcEventHdr
-	ParentPid  KernelPID
-	ParentTGid KernelPID
+	ParentPid  KernelPID // Task ID
+	ParentTGid KernelPID // Process ID
 	ChildPid   KernelPID
 	ChildTGid  KernelPID
 }
