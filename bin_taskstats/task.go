@@ -33,8 +33,8 @@ func TestTaskStats(r *bufio.Reader, w *bufio.Writer) {
 
 	for {
 		resp, _ := netlink.ReadMessage(r)
-    fmt.Printf("%#v\n", resp)
-		parsedmsg, _ := genl.ParseGenlFamilyMessage(resp)
+		fmt.Printf("%#v\n", resp)
+		parsedmsg, _ := genl.ParseGenlTaskstatsMsg(resp)
 		switch m := parsedmsg.(type) {
 		case nil:
 			return
@@ -44,7 +44,7 @@ func TestTaskStats(r *bufio.Reader, w *bufio.Writer) {
 			break
 		default:
 			msg_s, _ := json.MarshalIndent(m, "", "  ")
-			fmt.Printf("GenlFamily = %s\n", msg_s)
+			fmt.Printf("Taskstats = %s\n", msg_s)
 		}
 	}
 }

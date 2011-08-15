@@ -73,6 +73,8 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 	switch true {
 	case er != nil:
 		return er
+	case type_spec == "none":
+		value.Set(reflect.ValueOf(true))
 	case type_spec == "fixed":
 		// The payload is a binary struct
 		if !value.CanAddr() {
@@ -171,20 +173,20 @@ func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) 
 	return nil
 }
 
-func putAttribute(w *bytes.Buffer, attrtype uint16, data interface{}) os.Error {
-	var attr Attr
+func PutAttribute(w *bytes.Buffer, attrtype uint16, data interface{}) os.Error {
+	attr := Attr{Len: syscall.SizeofRtAttr, Type: attrtype}
 	switch data := data.(type) {
 	case []byte:
-		attr = Attr{Len: uint16(len(data)), Type: attrtype}
+		attr.Len += uint16(len(data))
 		binary.Write(w, SystemEndianness, attr)
 		binary.Write(w, SystemEndianness, data)
 	case string:
-		attr = Attr{Len: uint16(len(data) + 1), Type: attrtype}
+		attr.Len += uint16(len(data)) + 1
 		binary.Write(w, SystemEndianness, attr)
 		binary.Write(w, SystemEndianness, []byte(data))
 		w.WriteByte(0)
 	default:
-		attr = Attr{Len: uint16(sizeof(data)), Type: attrtype}
+		attr.Len += uint16(sizeof(data))
 		binary.Write(w, SystemEndianness, attr)
 		binary.Write(w, SystemEndianness, data)
 	}
