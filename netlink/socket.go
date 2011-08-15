@@ -90,3 +90,26 @@ func (s NetlinkConn) LocalAddr() net.Addr {
 func (s NetlinkConn) RemoteAddr() net.Addr {
 	return NetlinkAddr{s.family}
 }
+
+// from <linux/socket.h>
+const (
+	SOL_NETLINK = 270
+)
+
+// Joins a multicast group
+func (s NetlinkConn) JoinGroup(grp int) os.Error {
+	errno := syscall.SetsockoptInt(s.fd, SOL_NETLINK, syscall.NETLINK_ADD_MEMBERSHIP, grp)
+	if errno != 0 {
+		return os.NewSyscallError("setsockopt", errno)
+	}
+	return nil
+}
+
+// Leaves a multicast group
+func (s NetlinkConn) LeaveGroup(grp int) os.Error {
+	errno := syscall.SetsockoptInt(s.fd, SOL_NETLINK, syscall.NETLINK_DROP_MEMBERSHIP, grp)
+	if errno != 0 {
+		return os.NewSyscallError("setsockopt", errno)
+	}
+	return nil
+}
