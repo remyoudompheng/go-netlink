@@ -18,22 +18,6 @@ func MakeRouteMessage(proto, family int) (msg RawNetlinkMessage) {
 	return msg
 }
 
-type IfMap struct {
-	MemStart uint64
-	MemEnd   uint64
-	BaseAddr uint64
-	IRQ      uint16
-	DMA      uint8
-	Port     uint8
-}
-
-type LinkCacheInfo struct {
-	MaxReasmLen uint32
-	TimeStamp   uint32
-	ReachTime   uint32
-	RetransTime uint32
-}
-
 const (
 	DEVCONF_MAX     = 29
 	IPSTATS_MIB_MAX = 31
@@ -74,7 +58,7 @@ type RouteLinkMessage struct {
 	MTU       uint32           `netlink:"4" type:"fixed"`   // IFLA_MTU
 	LinkType  int32            `netlink:"5" type:"fixed"`   // IFLA_LINK
 	QDisc     string           `netlink:"6" type:"string"`  // IFLA_QDISC
-	Stats     [23]uint32       `netlink:"7" type:"fixed"`   // IFLA_STATS
+	Stats     LinkStats        `netlink:"7" type:"fixed"`   // IFLA_STATS
 	Master    uint32           `netlink:"10" type:"fixed"`  // IFLA_MASTER
 	ProtInfo  []byte           `netlink:"12" type:"bytes"`  // IFLA_PROTINFO
 	TxQLen    uint32           `netlink:"13" type:"fixed"`  // IFLA_TXQLEN
@@ -84,7 +68,7 @@ type RouteLinkMessage struct {
 	LinkMode  uint8            `netlink:"17" type:"fixed"`  // IFLA_LINKMODE
 	Ifalias   string           `netlink:"20" type:"string"` // IFLA_IFALIAS
 	NumVF     uint32           `netlink:"21" type:"fixed"`  // IFLA_NUM_VF
-	Stats64   [23]uint64       `netlink:"23" type:"fixed"`  // IFLA_STATS64
+	Stats64   LinkStats64      `netlink:"23" type:"fixed"`  // IFLA_STATS64
 	AFSpec    AFSpec           `netlink:"26" type:"nested"` // IFLA_AF_SPEC
 	Group     uint32           `netlink:"27" type:"fixed"`  // IFLA_GROUP
 }
@@ -111,20 +95,13 @@ type RouteAddrMessage struct {
 	Header syscall.NlMsghdr
 	IfAddr syscall.IfAddrmsg
 	// attributes
-	Address   net.IP          `netlink:"1" type:"bytes"`  // IFA_ADDRESS
-	Local     net.IP          `netlink:"2" type:"bytes"`  // IFA_LOCAL
-	Label     string          `netlink:"3" type:"string"` // IFA_LABEL
-	Broadcast net.IP          `netlink:"4" type:"bytes"`  // IFA_BROADCAST
-	Anycast   net.IP          `netlink:"5" type:"bytes"`  // IFA_ANYCAST
-	Cacheinfo IfAddrCacheInfo `netlink:"6" type:"fixed"`  // IFA_CACHEINFO
-	Multicast net.IP          `netlink:"7" type:"bytes"`  // IFA_MULTICAST
-}
-
-type IfAddrCacheInfo struct {
-	Preferred uint32
-	Valid     uint32
-	CStamp    uint32
-	TStamp    uint32
+	Address   net.IP        `netlink:"1" type:"bytes"`  // IFA_ADDRESS
+	Local     net.IP        `netlink:"2" type:"bytes"`  // IFA_LOCAL
+	Label     string        `netlink:"3" type:"string"` // IFA_LABEL
+	Broadcast net.IP        `netlink:"4" type:"bytes"`  // IFA_BROADCAST
+	Anycast   net.IP        `netlink:"5" type:"bytes"`  // IFA_ANYCAST
+	Cacheinfo AddrCacheInfo `netlink:"6" type:"fixed"`  // IFA_CACHEINFO
+	Multicast net.IP        `netlink:"7" type:"bytes"`  // IFA_MULTICAST
 }
 
 // Parse address messages for family NETLINK_ROUTE
