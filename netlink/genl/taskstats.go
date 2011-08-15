@@ -1,0 +1,6 @@
+package genl
+
+const (
+	TASKSTATS_GENL_NAME    = "TASKSTATS"
+	TASKSTATS_GENL_VERSION = 0x1
+)
