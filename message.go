@@ -2,7 +2,6 @@ package netlink
 
 import (
 	"os"
-	"bufio"
 	"encoding/binary"
 	"syscall"
 	"bytes"
@@ -27,22 +26,24 @@ func (m RawNetlinkMessage) toRawMsg() syscall.NetlinkMessage {
 // Higher level implementation: let's suppose we're on a little-endian platform
 
 // Write a netlink message to a socket
-func WriteMessage(s *bufio.Writer, m NetlinkMsg) os.Error {
+func WriteMessage(s *NetlinkConn, m NetlinkMsg) os.Error {
+	w := bytes.NewBuffer(nil)
 	msg := m.toRawMsg()
 	msg.Header.Len = uint32(syscall.NLMSG_HDRLEN + len(msg.Data))
 	msg.Header.Seq = globalSeq
+	msg.Header.Pid = uint32(os.Getpid())
 	globalSeq++
-	binary.Write(s, SystemEndianness, msg.Header) // 16 bytes
-	_, er := s.Write(msg.Data)
-	s.Flush()
+	binary.Write(w, SystemEndianness, msg.Header) // 16 bytes
+	_, er := w.Write(msg.Data)
+	_, er = s.Write(w.Bytes())
 	return er
 }
 
 // Reads a netlink message from a socket
-func ReadMessage(s *bufio.Reader) (msg syscall.NetlinkMessage, er os.Error) {
-	binary.Read(s, SystemEndianness, &msg.Header)
+func ReadMessage(s *NetlinkConn) (msg syscall.NetlinkMessage, er os.Error) {
+	binary.Read(s.rbuf, SystemEndianness, &msg.Header)
 	msg.Data = make([]byte, msg.Header.Len-syscall.NLMSG_HDRLEN)
-	_, er = s.Read(msg.Data)
+	_, er = s.rbuf.Read(msg.Data)
 	return msg, er
 }
 

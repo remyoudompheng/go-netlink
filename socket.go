@@ -2,6 +2,7 @@ package netlink
 
 import (
 	"os"
+	"bufio"
 	"net"
 	"fmt"
 	"syscall"
@@ -17,6 +18,7 @@ type NetlinkConn struct {
 	fd     int
 	family uint16
 	addr   syscall.SockaddrNetlink
+	rbuf   *bufio.Reader
 }
 
 type NetlinkAddr struct {
@@ -58,6 +60,7 @@ func DialNetlink(family string, mask uint32) (conn *NetlinkConn, er os.Error) {
 	conn.addr.Family = syscall.AF_NETLINK
 	conn.addr.Pid = 0
 	conn.addr.Groups = mask
+	conn.rbuf = bufio.NewReader(conn)
 	errno = syscall.Bind(fd, &conn.addr)
 	if errno != 0 {
 		er = os.NewSyscallError("bind", errno)

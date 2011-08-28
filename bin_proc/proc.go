@@ -23,11 +23,11 @@ func MakeProcConnectorMsg() netlink.ConnMessage {
 	return msg
 }
 
-func get_events(r *bufio.Reader, w *bufio.Writer) {
+func get_events(s *netlink.NetlinkConn) {
 	msg := MakeProcConnectorMsg()
-	netlink.WriteMessage(w, &msg)
+	netlink.WriteMessage(s, &msg)
 	for {
-		resp, er := netlink.ReadMessage(r)
+		resp, er := netlink.ReadMessage(s)
 		if er != nil {
 			fmt.Println(er)
 			break
@@ -53,9 +53,7 @@ func main() {
 		fmt.Println(er)
 		return
 	}
-	r := bufio.NewReader(s)
-	w := bufio.NewWriter(s)
 	for {
-		get_events(r, w)
+		get_events(s)
 	}
 }

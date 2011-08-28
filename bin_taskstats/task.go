@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"bufio"
 	"bytes"
 	"fmt"
 	"netlink"
@@ -17,23 +16,17 @@ func MakeCmdMessage() (msg netlink.GenericNetlinkMessage) {
 	msg.GenHeader.Command = genl.TASKSTATS_CMD_GET
 	msg.GenHeader.Version = genl.TASKSTATS_GENL_VERSION
 	buf := bytes.NewBuffer([]byte{})
-	netlink.PutAttribute(buf, genl.TASKSTATS_CMD_ATTR_TGID, uint32(1282))
+	netlink.PutAttribute(buf, genl.TASKSTATS_CMD_ATTR_PID, uint32(os.Getpid()))
 	msg.Data = buf.Bytes()
 	return msg
 }
 
-func TestTaskStats(r *bufio.Reader, w *bufio.Writer) {
+func TestTaskStats(s *netlink.NetlinkConn) {
 	msg := MakeCmdMessage()
-	netlink.WriteMessage(w, &msg)
-	b := bytes.NewBuffer([]byte{})
-	buf := bufio.NewWriter(b)
-	netlink.WriteMessage(buf, &msg)
-	fmt.Println(b.Bytes())
-	fmt.Printf("%#v\n", msg)
+	netlink.WriteMessage(s, &msg)
 
 	for {
-		resp, _ := netlink.ReadMessage(r)
-		fmt.Printf("%#v\n", resp)
+		resp, _ := netlink.ReadMessage(s)
 		parsedmsg, _ := genl.ParseGenlTaskstatsMsg(resp)
 		switch m := parsedmsg.(type) {
 		case nil:
@@ -51,7 +44,5 @@ func TestTaskStats(r *bufio.Reader, w *bufio.Writer) {
 
 func main() {
 	s, _ := netlink.DialNetlink("generic", 0)
-	r := bufio.NewReader(s)
-	w := bufio.NewWriter(s)
-	TestTaskStats(r, w)
+	TestTaskStats(s)
 }

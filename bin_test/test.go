@@ -2,8 +2,6 @@ package main
 
 import (
 	"os"
-	"bufio"
-	"bytes"
 	"fmt"
 	"netlink"
 	"netlink/genl"
@@ -11,11 +9,11 @@ import (
 	"json"
 )
 
-func TestRouteLink(r *bufio.Reader, w *bufio.Writer) {
+func TestRouteLink(s *netlink.NetlinkConn) {
 	msg := netlink.MakeRouteMessage(syscall.RTM_GETLINK, syscall.AF_UNSPEC)
-	netlink.WriteMessage(w, msg)
+	netlink.WriteMessage(s, msg)
 	for {
-		resp, _ := netlink.ReadMessage(r)
+		resp, _ := netlink.ReadMessage(s)
 		parsedmsg, er := netlink.ParseRouteMessage(resp)
 		if parsedmsg == nil {
 			break
@@ -25,11 +23,11 @@ func TestRouteLink(r *bufio.Reader, w *bufio.Writer) {
 	}
 }
 
-func TestRouteAddr(r *bufio.Reader, w *bufio.Writer) {
+func TestRouteAddr(s *netlink.NetlinkConn) {
 	msg := netlink.MakeRouteMessage(syscall.RTM_GETADDR, syscall.AF_UNSPEC)
-	netlink.WriteMessage(w, msg)
+	netlink.WriteMessage(s, msg)
 	for {
-		resp, _ := netlink.ReadMessage(r)
+		resp, _ := netlink.ReadMessage(s)
 		parsedmsg, er := netlink.ParseRouteMessage(resp)
 		if parsedmsg == nil {
 			break
@@ -42,17 +40,12 @@ func TestRouteAddr(r *bufio.Reader, w *bufio.Writer) {
 	}
 }
 
-func TestGenericFamily(r *bufio.Reader, w *bufio.Writer) {
+func TestGenericFamily(s *netlink.NetlinkConn) {
 	msg := genl.MakeGenCtrlCmd(genl.CTRL_CMD_GETFAMILY)
-	netlink.WriteMessage(w, &msg)
-	b := bytes.NewBuffer([]byte{})
-	buf := bufio.NewWriter(b)
-	netlink.WriteMessage(buf, &msg)
-	fmt.Println(b.Bytes())
-	fmt.Printf("%#v\n", msg)
+	netlink.WriteMessage(s, &msg)
 
 	for {
-		resp, _ := netlink.ReadMessage(r)
+		resp, _ := netlink.ReadMessage(s)
 		parsedmsg, _ := genl.ParseGenlFamilyMessage(resp)
 		switch m := parsedmsg.(type) {
 		case nil:
@@ -70,15 +63,14 @@ func TestGenericFamily(r *bufio.Reader, w *bufio.Writer) {
 
 func main() {
 	s, _ := netlink.DialNetlink("route", 0)
-	r := bufio.NewReader(s)
-	w := bufio.NewWriter(s)
-	TestRouteLink(r, w)
-	TestRouteAddr(r, w)
+	TestRouteLink(s)
+	TestRouteAddr(s)
 
 	// NETLINK_GENERIC tests
 	s, _ = netlink.DialNetlink("generic", 0)
-	r = bufio.NewReader(s)
-	w = bufio.NewWriter(s)
 	fmt.Println("Testing generic family messages")
-	TestGenericFamily(r, w)
+	TestGenericFamily(s)
+
+	ids, er := genl.GetFamilyIDs()
+	fmt.Printf("%#v\n%s\n", ids, er)
 }
