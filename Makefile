@@ -1,20 +1,22 @@
-DEFS=\
-     netlink/rtnetlink_defs.go\
-     netlink/genl/taskstats_defs.go\
-     nl80211/nl80211_defs.go
+include $(GOROOT)/src/Make.inc
 
-godag: $(DEFS)
-	gd .
-	gd -I. -o proc bin_proc
-	gd -I. -o taskstats bin_taskstats
+TARG=netlink
+GOFILES=\
+	attributes.go\
+	message.go\
+	socket.go\
+	family_conn.go\
+	family_route.go\
+	family_generic.go\
+	rtnetlink_defs.go
 
-.PHONY: godag $(DEFS)
+include $(GOROOT)/src/Make.pkg
 
-netlink/rtnetlink_defs.go:
-	godefs -g netlink netlink/rtnetlink.c | gofmt > netlink/rtnetlink_defs.go
+rtnetlink_defs.go: rtnetlink.c
+	godefs -g netlink rtnetlink.c | gofmt > rtnetlink_defs.go
 
-netlink/genl/taskstats_defs.go:
-	godefs -g genl netlink/genl/taskstats.c | gofmt > netlink/genl/taskstats_defs.go
+clean: clean-godefs
 
-nl80211/nl80211_defs.go:
-	./gen_nl80211.sh | godefs -gnl80211 - > nl80211/nl80211_defs.go
+clean-godefs:
+	rm rtnetlink_defs.go
+
