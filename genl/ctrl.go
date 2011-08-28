@@ -2,9 +2,11 @@ package genl
 
 import (
 	"os"
+	"fmt"
 	"bytes"
 	"encoding/binary"
 	"syscall"
+	"reflect"
 	. "netlink"
 )
 
@@ -84,4 +86,34 @@ func ParseGenlFamilyMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, o
 	// read Family attributes
 	er := ReadManyAttributes(buf, m)
 	return m, er
+}
+
+func GetFamilyIDs() (ids map[string]uint16, er os.Error) {
+	s, _ := DialNetlink("generic", 0)
+	msg := MakeGenCtrlCmd(CTRL_CMD_GETFAMILY)
+	WriteMessage(s, &msg)
+	ids = make(map[string]uint16, 4)
+	for {
+		resp, er := ReadMessage(s)
+		if er != nil {
+			return nil, fmt.Errorf("error while receiving netlink message: %s", er)
+		}
+		parsedmsg, er := ParseGenlFamilyMessage(resp)
+		if er != nil {
+			return nil, fmt.Errorf("error while parsing netlink message: %s", er)
+		}
+
+		switch m := parsedmsg.(type) {
+		case nil:
+			return ids, nil
+		case *ErrorMessage:
+			return nil, fmt.Errorf("could not retrieve genl family info: %s",
+				os.NewSyscallError("netlink", int(-m.Errno)))
+		case *GenlCtrlMessage:
+			ids[m.FamilyName] = m.FamilyID
+		default:
+			return nil, fmt.Errorf("unable to handle message of wrong type %s", reflect.TypeOf(m))
+		}
+	}
+	panic("unreachable")
 }
