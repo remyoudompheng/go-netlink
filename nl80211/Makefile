@@ -2,6 +2,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG=netlink/nl80211
 GOFILES=\
+	commands.go\
 	policies.go\
 	nl80211_defs.go\
 

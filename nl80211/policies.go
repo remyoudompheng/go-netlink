@@ -47,4 +47,3 @@ type BSSParam struct {
 	DtimPeriod         uint8  `netlink:"4" type:"fixed"` // BSS_PARAM_FLAGS_DTIM_PERIOD 
 	BeaconInterval     uint16 `netlink:"5" type:"fixed"` // BSS_PARAM_FLAGS_BEACON_INTERVAL  
 }
-
