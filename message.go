@@ -1,10 +1,10 @@
 package netlink
 
 import (
-	"os"
-	"encoding/binary"
-	"syscall"
 	"bytes"
+	"encoding/binary"
+	"os"
+	"syscall"
 )
 
 var (
@@ -26,7 +26,7 @@ func (m RawNetlinkMessage) toRawMsg() syscall.NetlinkMessage {
 // Higher level implementation: let's suppose we're on a little-endian platform
 
 // Write a netlink message to a socket
-func WriteMessage(s *NetlinkConn, m NetlinkMsg) os.Error {
+func WriteMessage(s *NetlinkConn, m NetlinkMsg) error {
 	w := bytes.NewBuffer(nil)
 	msg := m.toRawMsg()
 	msg.Header.Len = uint32(syscall.NLMSG_HDRLEN + len(msg.Data))
@@ -40,7 +40,7 @@ func WriteMessage(s *NetlinkConn, m NetlinkMsg) os.Error {
 }
 
 // Reads a netlink message from a socket
-func ReadMessage(s *NetlinkConn) (msg syscall.NetlinkMessage, er os.Error) {
+func ReadMessage(s *NetlinkConn) (msg syscall.NetlinkMessage, er error) {
 	binary.Read(s.rbuf, SystemEndianness, &msg.Header)
 	msg.Data = make([]byte, msg.Header.Len-syscall.NLMSG_HDRLEN)
 	_, er = s.rbuf.Read(msg.Data)

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"os"
+	"encoding/json"
 	"fmt"
 	"netlink"
 	"netlink/genl"
+	"os"
 	"syscall"
-	"json"
 )
 
 func TestRouteLink(s *netlink.NetlinkConn) {

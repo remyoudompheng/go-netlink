@@ -1,7 +1,6 @@
 package genl
 
 import (
-	"os"
 	"bytes"
 	"encoding/binary"
 	"netlink"
@@ -23,7 +22,7 @@ type GenlTaskstatsMessage struct {
 	AggrTGid  bool               `netlink:"5" type:"none"`  // TASKSTATS_TYPE_AGGR_TGID
 }
 
-func ParseGenlTaskstatsMsg(msg syscall.NetlinkMessage) (netlink.ParsedNetlinkMessage, os.Error) {
+func ParseGenlTaskstatsMsg(msg syscall.NetlinkMessage) (netlink.ParsedNetlinkMessage, error) {
 	m := new(GenlTaskstatsMessage)
 	m.Header = msg.Header
 	switch m.Header.Type {

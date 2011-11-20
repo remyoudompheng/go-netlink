@@ -1,7 +1,6 @@
 package netlink
 
 import (
-	"os"
 	"bytes"
 	"encoding/binary"
 	"syscall"
@@ -29,11 +28,10 @@ func (msg *GenericNetlinkMessage) toRawMsg() (rawmsg syscall.NetlinkMessage) {
 	return rawmsg
 }
 
-func ParseGenlMessage(msg syscall.NetlinkMessage) (genmsg GenericNetlinkMessage, er os.Error) {
+func ParseGenlMessage(msg syscall.NetlinkMessage) (genmsg GenericNetlinkMessage, er error) {
 	genmsg.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
 	binary.Read(buf, SystemEndianness, &genmsg.GenHeader)
 	genmsg.Data = buf.Bytes()
 	return genmsg, nil
 }
-

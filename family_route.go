@@ -1,14 +1,12 @@
 package netlink
 
 import (
-	"os"
-	"net"
-	"encoding/binary"
-	"syscall"
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"net"
+	"syscall"
 )
-
 
 func MakeRouteMessage(proto, family int) (msg RawNetlinkMessage) {
 	msg.Header.Type = uint16(proto)
@@ -80,7 +78,7 @@ const (
 	IFLA_GROUP   = 0x1b
 )
 
-func ParseRouteLinkMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
+func ParseRouteLinkMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, error) {
 	m := new(RouteLinkMessage)
 	m.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
@@ -105,7 +103,7 @@ type RouteAddrMessage struct {
 }
 
 // Parse address messages for family NETLINK_ROUTE
-func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
+func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, error) {
 	m := new(RouteAddrMessage)
 	m.Header = msg.Header
 	buf := bytes.NewBuffer(msg.Data)
@@ -116,7 +114,7 @@ func ParseRouteAddrMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os
 	return m, er
 }
 
-func ParseRouteMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
+func ParseRouteMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, error) {
 	switch msg.Header.Type {
 	case syscall.RTM_NEWADDR, syscall.RTM_GETADDR, syscall.RTM_DELADDR:
 		return ParseRouteAddrMessage(msg)

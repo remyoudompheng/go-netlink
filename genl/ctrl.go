@@ -1,13 +1,13 @@
 package genl
 
 import (
-	"os"
-	"fmt"
 	"bytes"
 	"encoding/binary"
-	"syscall"
-	"reflect"
+	"fmt"
 	. "netlink"
+	"os"
+	"reflect"
+	"syscall"
 )
 
 // Control messages for Generic Netlink interface
@@ -71,7 +71,7 @@ func MakeGenCtrlCmd(cmd uint8) (msg GenericNetlinkMessage) {
 	return msg
 }
 
-func ParseGenlFamilyMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
+func ParseGenlFamilyMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, error) {
 	m := new(GenlCtrlMessage)
 	m.Header = msg.Header
 	switch m.Header.Type {
@@ -88,7 +88,7 @@ func ParseGenlFamilyMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, o
 	return m, er
 }
 
-func GetFamilyIDs() (ids map[string]uint16, er os.Error) {
+func GetFamilyIDs() (ids map[string]uint16, er error) {
 	s, _ := DialNetlink("generic", 0)
 	msg := MakeGenCtrlCmd(CTRL_CMD_GETFAMILY)
 	WriteMessage(s, &msg)
@@ -108,7 +108,7 @@ func GetFamilyIDs() (ids map[string]uint16, er os.Error) {
 			return ids, nil
 		case *ErrorMessage:
 			return nil, fmt.Errorf("could not retrieve genl family info: %s",
-				os.NewSyscallError("netlink", int(-m.Errno)))
+				os.NewSyscallError("netlink", syscall.Errno(-m.Errno)))
 		case *GenlCtrlMessage:
 			ids[m.FamilyName] = m.FamilyID
 		default:

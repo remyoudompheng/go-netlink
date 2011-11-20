@@ -1,14 +1,14 @@
 package main
 
 import (
-	"os"
 	"bufio"
-	"fmt"
-	"syscall"
-	"netlink"
-	"json"
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
+	"netlink"
+	"os"
+	"syscall"
 )
 
 func MakeProcConnectorMsg() netlink.ConnMessage {

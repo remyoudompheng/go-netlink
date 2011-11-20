@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"netlink"
 	"netlink/genl"
+	"os"
 	"syscall"
-	"json"
 )
 
 func MakeCmdMessage() (msg netlink.GenericNetlinkMessage) {

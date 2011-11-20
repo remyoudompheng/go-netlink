@@ -1,11 +1,12 @@
 package netlink
 
 import (
-	"os"
-	"fmt"
-	"encoding/binary"
-	"reflect"
 	"bytes"
+
+	"encoding/binary"
+	"fmt"
+	"io"
+	"reflect"
 	"syscall"
 )
 
@@ -14,7 +15,7 @@ func netlinkPadding(size int) int {
 	return (syscall.NLMSG_ALIGNTO - partialChunk) % syscall.NLMSG_ALIGNTO
 }
 
-func skipAlignedFromSlice(r *bytes.Buffer, dataLen int) os.Error {
+func skipAlignedFromSlice(r *bytes.Buffer, dataLen int) error {
 	r.Next(dataLen + netlinkPadding(dataLen))
 	return nil
 }
@@ -29,7 +30,7 @@ func strtoi(s string) int {
 }
 
 // Returns pointer to a field, and type information corresponding to a given numerical ID.
-func getDestinationAndType(object interface{}, id uint16) (reflect.Value, string, os.Error) {
+func getDestinationAndType(object interface{}, id uint16) (reflect.Value, string, error) {
 	ptrType := reflect.TypeOf(object)
 	// check the object is a pointer
 	if ptrType.Kind() != reflect.Ptr {
@@ -62,7 +63,7 @@ func getDestinationAndType(object interface{}, id uint16) (reflect.Value, string
 
 // Reads one attribute into a structure.
 // dest must be a pointer to a struct.
-func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
+func readAttribute(r *bytes.Buffer, dest interface{}) (er error) {
 	var attr syscall.RtAttr
 	er = binary.Read(r, SystemEndianness, &attr)
 	if er != nil {
@@ -120,13 +121,13 @@ func readAttribute(r *bytes.Buffer, dest interface{}) (er os.Error) {
 	return er
 }
 
-func ReadManyAttributes(r *bytes.Buffer, dest interface{}) (er os.Error) {
+func ReadManyAttributes(r *bytes.Buffer, dest interface{}) (er error) {
 	for {
 		er := readAttribute(r, dest)
 		switch er {
 		case nil:
 			break
-		case os.EOF:
+		case io.EOF:
 			return nil
 		default:
 			return er
@@ -136,7 +137,7 @@ func ReadManyAttributes(r *bytes.Buffer, dest interface{}) (er os.Error) {
 }
 
 // Reads n nested attributes into the elements of an array
-func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) {
+func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er error) {
 	if dest.Type().Kind() != reflect.Slice {
 		return fmt.Errorf("unable to fill field of type %s with list of nested attrs!", dest.Type())
 	}
@@ -146,7 +147,7 @@ func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) 
 		switch er {
 		case nil:
 			break
-		case os.EOF:
+		case io.EOF:
 			return nil
 		default:
 			return er
@@ -173,7 +174,7 @@ func readNestedAttributeList(r *bytes.Buffer, dest reflect.Value) (er os.Error) 
 	return nil
 }
 
-func PutAttribute(w *bytes.Buffer, attrtype uint16, data interface{}) os.Error {
+func PutAttribute(w *bytes.Buffer, attrtype uint16, data interface{}) error {
 	attr := Attr{Len: syscall.SizeofRtAttr, Type: attrtype}
 	switch data := data.(type) {
 	case []byte:

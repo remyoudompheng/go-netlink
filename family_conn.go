@@ -1,10 +1,9 @@
 package netlink
 
 import (
-	"os"
-	"fmt"
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"syscall"
 )
 
@@ -56,7 +55,7 @@ func (msg *ConnMessage) toRawMsg() (rawmsg syscall.NetlinkMessage) {
 	return rawmsg
 }
 
-func ParseConnMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, os.Error) {
+func ParseConnMessage(msg syscall.NetlinkMessage) (ParsedNetlinkMessage, error) {
 	switch msg.Header.Type {
 	case syscall.NLMSG_ERROR:
 		return ParseErrorMessage(msg), nil
@@ -97,7 +96,6 @@ type ProcEventAck struct {
 	Err    uint32
 }
 
-
 type ProcEventFork struct {
 	Header     ProcEventHdr
 	ParentPid  KernelPID // Task ID
@@ -134,7 +132,7 @@ type ProcEventExit struct {
 	ExitSignal uint32
 }
 
-func ParseProcEvent(data []byte) (interface{}, os.Error) {
+func ParseProcEvent(data []byte) (interface{}, error) {
 	var h ProcEventHdr
 	r := bytes.NewBuffer(data)
 	er := binary.Read(r, SystemEndianness, &h)

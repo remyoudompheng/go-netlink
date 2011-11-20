@@ -1,10 +1,10 @@
 package netlink
 
 import (
-	"os"
 	"bufio"
-	"net"
 	"fmt"
+	"net"
+	"os"
 	"syscall"
 )
 
@@ -33,9 +33,12 @@ func (addr NetlinkAddr) String() string {
 	return "netlink:" + netlinkFamilies[addr.family]
 }
 
-func DialNetlink(family string, mask uint32) (conn *NetlinkConn, er os.Error) {
-	var fd, errno int
-	var familyno uint16
+func DialNetlink(family string, mask uint32) (conn *NetlinkConn, er error) {
+	var (
+		fd       int
+		errno    error
+		familyno uint16
+	)
 	switch family {
 	case "generic":
 		familyno = syscall.NETLINK_GENERIC
@@ -50,7 +53,7 @@ func DialNetlink(family string, mask uint32) (conn *NetlinkConn, er os.Error) {
 	}
 	// Create socket
 	fd, errno = syscall.Socket(syscall.AF_NETLINK, syscall.SOCK_DGRAM, int(familyno))
-	if errno != 0 {
+	if errno != nil {
 		er = os.NewSyscallError("socket", errno)
 		return nil, fmt.Errorf("Cannot create netlink socket: %s", er)
 	}
@@ -62,7 +65,7 @@ func DialNetlink(family string, mask uint32) (conn *NetlinkConn, er os.Error) {
 	conn.addr.Groups = mask
 	conn.rbuf = bufio.NewReader(conn)
 	errno = syscall.Bind(fd, &conn.addr)
-	if errno != 0 {
+	if errno != nil {
 		er = os.NewSyscallError("bind", errno)
 		syscall.Close(fd)
 		return nil, fmt.Errorf("Cannot bind netlink socket: %s", er)
@@ -71,17 +74,17 @@ func DialNetlink(family string, mask uint32) (conn *NetlinkConn, er os.Error) {
 }
 
 // net.Conn interface implementation
-func (s NetlinkConn) Read(b []byte) (n int, err os.Error) {
+func (s NetlinkConn) Read(b []byte) (n int, err error) {
 	nr, _, e := syscall.Recvfrom(s.fd, b, 0)
 	return nr, os.NewSyscallError("recvfrom", e)
 }
 
-func (s NetlinkConn) Write(b []byte) (n int, err os.Error) {
+func (s NetlinkConn) Write(b []byte) (n int, err error) {
 	e := syscall.Sendto(s.fd, b, 0, &s.addr)
 	return len(b), os.NewSyscallError("sendto", e)
 }
 
-func (s NetlinkConn) Close() os.Error {
+func (s NetlinkConn) Close() error {
 	e := syscall.Close(s.fd)
 	return os.NewSyscallError("close", e)
 }
@@ -100,18 +103,18 @@ const (
 )
 
 // Joins a multicast group
-func (s NetlinkConn) JoinGroup(grp int) os.Error {
+func (s NetlinkConn) JoinGroup(grp int) error {
 	errno := syscall.SetsockoptInt(s.fd, SOL_NETLINK, syscall.NETLINK_ADD_MEMBERSHIP, grp)
-	if errno != 0 {
+	if errno != nil {
 		return os.NewSyscallError("setsockopt", errno)
 	}
 	return nil
 }
 
 // Leaves a multicast group
-func (s NetlinkConn) LeaveGroup(grp int) os.Error {
+func (s NetlinkConn) LeaveGroup(grp int) error {
 	errno := syscall.SetsockoptInt(s.fd, SOL_NETLINK, syscall.NETLINK_DROP_MEMBERSHIP, grp)
-	if errno != 0 {
+	if errno != nil {
 		return os.NewSyscallError("setsockopt", errno)
 	}
 	return nil
