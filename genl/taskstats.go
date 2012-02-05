@@ -3,7 +3,7 @@ package genl
 import (
 	"bytes"
 	"encoding/binary"
-	"netlink"
+	"github.com/remyoudompheng/go-netlink"
 	"syscall"
 )
 

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	. "netlink"
+	. "github.com/remyoudompheng/go-netlink"
 	"os"
 	"reflect"
 	"syscall"

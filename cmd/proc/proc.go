@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"netlink"
+	netlink "github.com/remyoudompheng/go-netlink"
 	"os"
 	"syscall"
 )

@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"netlink"
-	"netlink/genl"
+	"github.com/remyoudompheng/go-netlink"
+	"github.com/remyoudompheng/go-netlink/genl"
 	"os"
 	"syscall"
 )

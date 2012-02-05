@@ -24,7 +24,7 @@ func strtoi(s string) int {
 	i := 0
 	for _, c := range s {
 		i *= 10
-		i += c - '0'
+		i += int(c) - '0'
 	}
 	return i
 }

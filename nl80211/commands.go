@@ -2,8 +2,8 @@ package nl80211
 
 import (
 	"fmt"
-	"netlink"
-	"netlink/genl"
+	netlink "github.com/remyoudompheng/go-netlink"
+	"github.com/remyoudompheng/go-netlink/genl"
 )
 
 var (

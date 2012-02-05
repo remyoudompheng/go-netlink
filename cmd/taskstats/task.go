@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"netlink"
-	"netlink/genl"
+	netlink "github.com/remyoudompheng/go-netlink"
+	"github.com/remyoudompheng/go-netlink/genl"
 	"os"
 	"syscall"
 )
