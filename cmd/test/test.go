@@ -52,7 +52,7 @@ func TestGenericFamily(s *netlink.NetlinkConn) {
 			return
 		case netlink.ErrorMessage:
 			msg_s, _ := json.MarshalIndent(m, "", "  ")
-			fmt.Printf("ErrorMsg = %s\n%s\n", msg_s, os.NewSyscallError("netlink", int(-m.Errno)))
+			fmt.Printf("ErrorMsg = %s\n%s\n", msg_s, syscall.Errno(-m.Errno))
 			break
 		default:
 			msg_s, _ := json.MarshalIndent(m, "", "  ")
