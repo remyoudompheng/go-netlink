@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/remyoudompheng/go-netlink"
 	"github.com/remyoudompheng/go-netlink/genl"
-	"os"
 	"syscall"
 )
 

@@ -207,5 +207,5 @@ func sizeof(data interface{}) int {
 	default:
 		v = d
 	}
-	return binary.TotalSize(v)
+	return binary.Size(v.Interface())
 }
