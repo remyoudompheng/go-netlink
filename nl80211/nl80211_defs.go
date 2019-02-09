@@ -140,7 +140,7 @@ const (
 	CMD_STA_OPMODE_CHANGED              = 0x80
 	CMD_CONTROL_PORT_FRAME              = 0x81
 	__CMD_AFTER_LAST                    = 0x82
-	CMD_MAX                             = 0x83
+	CMD_MAX                             = __CMD_AFTER_LAST - 1
 	ATTR_UNSPEC                         = 0
 	ATTR_WIPHY                          = 0x1
 	ATTR_WIPHY_NAME                     = 0x2
