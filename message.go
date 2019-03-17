@@ -25,7 +25,7 @@ func (m RawNetlinkMessage) toRawMsg() syscall.NetlinkMessage {
 
 // Higher level implementation: let's suppose we're on a little-endian platform
 
-// Write a netlink message to a socket
+// WriteMessage writes a netlink message to a socket
 func WriteMessage(s *NetlinkConn, m NetlinkMsg) error {
 	w := bytes.NewBuffer(nil)
 	msg := m.toRawMsg()
@@ -39,7 +39,7 @@ func WriteMessage(s *NetlinkConn, m NetlinkMsg) error {
 	return er
 }
 
-// Reads a netlink message from a socket
+// ReadMessage reads a netlink message from a socket
 func ReadMessage(s *NetlinkConn) (msg syscall.NetlinkMessage, er error) {
 	binary.Read(s.rbuf, SystemEndianness, &msg.Header)
 	msg.Data = make([]byte, msg.Header.Len-syscall.NLMSG_HDRLEN)
